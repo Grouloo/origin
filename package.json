@@ -1,0 +1,16 @@
+{
+   "name": "origin",
+   "module": "index.ts",
+   "type": "module",
+   "devDependencies": {
+      "bun-types": "latest"
+   },
+   "peerDependencies": {
+      "typescript": "^5.0.0"
+   },
+   "dependencies": {
+      "elysia": "^0.7.15",
+      "shulk": "^0.9.2"
+   },
+   "scripts": {}
+}
