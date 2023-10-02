@@ -5,11 +5,11 @@ import Elysia from 'elysia'
 import { tuple } from 'shulk'
 
 const db = new Database('./db.sqlite', { create: true })
-db.transaction(() =>
-   db.run(
-      `CREATE TABLE triples (id VARCHAR PRIMARY KEY, subject VARCHAR, predicate VARCHAR, object)`
-   )
-)
+db.transaction(() => false)
+
+// db.run(
+//    `CREATE TABLE triples (id VARCHAR PRIMARY KEY, subject VARCHAR, predicate VARCHAR, object)`
+// )
 
 type Triple = {
    id: `T${string}`
@@ -67,10 +67,19 @@ function readSubject(uid: SubjectId, fields?: string[]) {
    return subject
 }
 
+function createQuery(parts: string[]): string {
+   if (parts.length == 1) {
+      return `SELECT subject FROM triples WHERE ${parts[0]}`
+   }
+   return `SELECT subject FROM triples WHERE ${
+      parts[0]
+   } AND subject IN (${createQuery(parts.slice(1))})`
+}
+
 function useSparql(query: string) {
    const [_, fieldsStr, conditionsStr] = query.split(/SELECT|WHERE/g)
 
-   const fields = fieldsStr.split(' ')
+   const fields = fieldsStr.split(' ').map((f) => f.slice(1))
 
    console.log(fields)
 
@@ -88,19 +97,19 @@ function useSparql(query: string) {
       return `(predicate = "${property}" AND object = "${value}")`
    })
 
-   console.log(q.join(' & '))
+   const queryString = createQuery(q)
 
-   const triples: Triple[] = db
-      .query(`SELECT * FROM triples WHERE ${q.join(' AND ')}`)
+   const triples: { subject: SubjectId }[] = db
+      .query(queryString)
       .all() as Triple[]
 
    console.log(triples)
 
    const tmp: { [x: SubjectId]: { [x: string]: unknown } } = {}
 
-   triples.map((triple: Triple) => {
-      if (!Object.keys(tmp).includes(triple.subject)) {
-         tmp[triple.subject] = readSubject(triple.subject, fields)
+   triples.map((row) => {
+      if (!Object.keys(tmp).includes(row.subject)) {
+         tmp[row.subject] = readSubject(row.subject, fields)
       }
    })
 
