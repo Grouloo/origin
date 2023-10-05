@@ -1,9 +1,9 @@
 import { generateUid } from '../functions/generateUid'
 
-export type TripleId = `T${string}`
+export type TripleId = `triple:${string}`
 
 export function createTripleId(): TripleId {
    const uid = generateUid(Date.now())
 
-   return `T${uid}`
+   return `triple:${uid}`
 }

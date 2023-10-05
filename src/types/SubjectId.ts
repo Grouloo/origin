@@ -1,9 +1,11 @@
 import { generateUid } from '../functions/generateUid'
 
-export type SubjectId = `S${string}`
+export type SubjectId = `subject:${string}`
 
-export function createSubjectId(): SubjectId {
-   const uid = generateUid(Date.now())
+export function createSubjectId(uid?: string): SubjectId {
+   if (!uid) {
+      uid = generateUid(Date.now())
+   }
 
-   return `S${uid}`
+   return `subject:${uid}`
 }
