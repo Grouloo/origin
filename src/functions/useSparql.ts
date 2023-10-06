@@ -1,9 +1,9 @@
 import Database from 'bun:sqlite'
-import { SubjectId } from '../types/SubjectId'
+import { SubjectId, isSubjectId } from '../types/SubjectId'
 import { createSQLQuery } from './createSQLQuery'
 import { Triple } from '../triple/Triple'
 import { readSubject } from '../subject/readSubject'
-import { Maybe, None, Ok, Some } from 'shulk'
+import { Err, Maybe, None, Ok, Result, Some } from 'shulk'
 
 type Query = {
    fields: { [x: string]: string }
@@ -16,10 +16,18 @@ function createNumber(val: string): Maybe<number> {
    return Number.isNaN(parsedVal) ? None() : Some(parsedVal)
 }
 
-function parseSparql(query: string): Query {
+function parseSparql(query: string): Result<string, Query> {
    const [_, fieldsStr, conditionsStr] = query.split(/SELECT|WHERE/g)
 
+   if (!fieldsStr) {
+      return Err('Missing fields.')
+   }
+
    const fields = fieldsStr.split(' ').map((f) => f.slice(1))
+
+   if (!conditionsStr) {
+      return Err('Missing conditions.')
+   }
 
    const conditions = conditionsStr.split(/{|}|\./g).slice(1, -1)
 
@@ -29,9 +37,17 @@ function parseSparql(query: string): Query {
       propertyToField[field] = field
    }
 
+   let error: Maybe<string> = None()
+
    const parsedConditions = Object.fromEntries(
       conditions.map((condition) => {
          const [field, property, value] = condition.split(' ')
+
+         if (!field || !property || !value) {
+            error = Some('Malformed condition')
+
+            return ['', '']
+         }
 
          const parsed = field.slice(1)
          propertyToField[property] = parsed
@@ -42,25 +58,41 @@ function parseSparql(query: string): Query {
       })
    )
 
-   return { fields: propertyToField, conditions: parsedConditions }
+   if (error._state == 'Some') {
+      return Err(error.val)
+   }
+
+   return Ok({ fields: propertyToField, conditions: parsedConditions })
 }
 
-export function useSparql(db: Database, query: string) {
-   const parsedQuery = parseSparql(query)
+export function useSparql(db: Database, query: string): Result<string, object> {
+   const parsedQueryOrError = parseSparql(query)
+
+   if (parsedQueryOrError._state == 'Err') {
+      return Err(parsedQueryOrError.val)
+   }
+
+   const parsedQuery = parsedQueryOrError.val
 
    const sqlQuery = createSQLQuery(Object.entries(parsedQuery.conditions))
 
-   const triples: { subject: SubjectId }[] = db
+   const triples: { subject: Triple['subject'] }[] = db
       .query(sqlQuery)
       .all() as Triple[]
 
-   const tmp: { [x: SubjectId]: { [x: string]: unknown } } = {}
+   const tmp: { [x: Triple['subject']]: object } = {}
 
    triples.map((row) => {
-      if (!Object.keys(tmp).includes(row.subject)) {
-         tmp[row.subject] = readSubject(db, row.subject, parsedQuery.fields)
+      const subjetHasNotBeenFetched = !Object.keys(tmp).includes(row.subject)
+
+      if (isSubjectId(row.subject) && subjetHasNotBeenFetched) {
+         const subjectOrError = readSubject(db, row.subject, parsedQuery.fields)
+
+         if (subjectOrError._state == 'Ok') {
+            tmp[row.subject] = subjectOrError.val
+         }
       }
    })
 
-   return Object.entries(tmp).map(([id, element]) => ({ id, ...element }))
+   return Ok(Object.entries(tmp).map(([id, element]) => ({ id, ...element })))
 }

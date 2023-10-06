@@ -3,8 +3,13 @@ import { Triple } from '../triple/Triple'
 import { createTripleId } from '../types/TripleId'
 import { saveTriple } from '../triple/saveTriple'
 import Database from 'bun:sqlite'
+import { Err, Ok, Result } from 'shulk'
+import { DatabaseError } from '../types/DatabaseError'
 
-export function createSubject(db: Database, entity: { [x: string]: unknown }) {
+export function createSubject(
+   db: Database,
+   entity: { [x: string]: unknown }
+): Result<DatabaseError['BadType' | 'Unexpected' | 'NotFound'], Triple[]> {
    const subjectId = createSubjectId()
 
    const triples = Object.entries(entity).map(([prop, value]) => {
@@ -19,8 +24,12 @@ export function createSubject(db: Database, entity: { [x: string]: unknown }) {
    })
 
    for (const triple of triples) {
-      saveTriple(db, triple)
+      const res = saveTriple(db, triple)
+
+      if (res._state == 'Err') {
+         return Err(res.val)
+      }
    }
 
-   return triples
+   return Ok(triples)
 }

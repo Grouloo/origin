@@ -9,3 +9,7 @@ export function createSubjectId(uid?: string): SubjectId {
 
    return `subject:${uid}`
 }
+
+export function isSubjectId(val: unknown): val is SubjectId {
+   return typeof val == 'string' && val.startsWith('subject:')
+}
