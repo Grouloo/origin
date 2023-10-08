@@ -83,6 +83,8 @@ When creating a new subject, Origin will iterate through every property and chec
 
 ### Create a subject
 
+#### Path
+
 ```
 POST /subjects
 ```
@@ -100,11 +102,17 @@ POST /subjects
 
 ### Read a subject
 
+#### Path
+
 ```
 GET /subjects/[id]
 ```
 
 ### SPARQL Query
+
+You can use the SPARQL query language to retrieve data from Origin.
+
+#### Path
 
 ```
 POST /sparql
@@ -116,9 +124,11 @@ POST /sparql
 "[YOUR SPARQL QUERY]"
 ```
 
-### Insert new subjecy by using natural language
+### Insert new subject by using natural language
 
 If you have an OpenAI API key, you can use it in Origin to insert subjects by providing a description in natural language.
+
+#### Path
 
 ```
 POST /tell
@@ -131,6 +141,8 @@ POST /tell
 ```
 
 ### Get schema
+
+#### Path
 
 ```
 GET /schema
