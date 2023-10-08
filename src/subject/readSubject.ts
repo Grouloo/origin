@@ -1,8 +1,9 @@
 import Database from 'bun:sqlite'
 import { SubjectId } from '../types/SubjectId'
 import { Triple } from '../triple/Triple'
-import { Err, Ok, Result } from 'shulk'
+import { Err, Ok, Result, match } from 'shulk'
 import { DatabaseError } from '../types/DatabaseError'
+import { triplesToSubject } from './triplesToSubject'
 
 export function readSubject(
    db: Database,
@@ -13,23 +14,11 @@ export function readSubject(
       .query(`SELECT * FROM triples WHERE subject = "${uid}"`)
       .all() as Triple[]
 
-   if (!triples[0]) {
-      return Err(DatabaseError.NotFound(`Subject ${uid} does not exist.`))
-   }
-
-   const subject: { [x: string]: unknown } = {
-      id: triples[0].subject.replace('subject:', ''),
-   }
-
-   triples.map((triple: Triple) => {
-      const { predicate } = triple
-
-      if (!fields) {
-         subject[triple.predicate] = triple.object
-      } else if (Object.hasOwn(fields, predicate)) {
-         subject[fields[predicate] as string] = triple.object
-      }
-   })
-
-   return Ok(subject)
+   return match(triplesToSubject(triples, fields))
+      .returnType<Result<DatabaseError['NotFound'], object>>()
+      .case({
+         None: () =>
+            Err(DatabaseError.NotFound(`Subject ${uid} does not exist.`)),
+         Some: ({ val }) => Ok(val),
+      })
 }

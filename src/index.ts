@@ -1,10 +1,13 @@
 import { Database } from 'bun:sqlite'
 import { createSubjectId } from './types/SubjectId'
 import Elysia from 'elysia'
-import { useSparql } from './functions/useSparql'
+import { useSparql } from './sparql/useSparql'
 import { readSubject } from './subject/readSubject'
 import { createSubject } from './subject/createSubject'
 import { listPredicate } from './predicate/listPredicates'
+import { insertByTelling } from './functions/insertByTelling'
+import { useChatGPT } from './functions/useChatGPT'
+import { DatabaseError } from './types/DatabaseError'
 
 const db = new Database('./db.sqlite', { create: true })
 
@@ -26,6 +29,24 @@ new Elysia()
       ({ body }) => createSubject(db, body as { [x: string]: unknown }).val
    )
    .post('/sparql', ({ body }) => useSparql(db, body as string).val)
+   .post('/tell', async ({ body }) => {
+      const apiKey = process.env.OPENAI_API_KEY
+
+      if (apiKey == undefined) {
+         return DatabaseError.Unexpected(
+            'You need an OpenAI API key to use the natural language features.'
+         )
+      }
+
+      return (
+         await insertByTelling(
+            db,
+            body as string,
+            listPredicate(db).unwrap(),
+            useChatGPT(apiKey)
+         )
+      ).val
+   })
    .get('/schema', () => listPredicate(db).val)
    .listen(8080)
 
