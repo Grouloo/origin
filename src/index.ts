@@ -8,6 +8,7 @@ import { listPredicate } from './predicate/listPredicates'
 import { insertByTelling } from './functions/insertByTelling'
 import { useChatGPT } from './functions/useChatGPT'
 import { DatabaseError } from './types/DatabaseError'
+import { Sparql } from './sparql/parseSparql'
 
 const db = new Database('./db.sqlite', { create: true })
 
@@ -28,7 +29,7 @@ new Elysia()
       '/subjects',
       ({ body }) => createSubject(db, body as { [x: string]: unknown }).val
    )
-   .post('/sparql', ({ body }) => useSparql(db, body as string).val)
+   .post('/sparql', ({ body }) => useSparql(db, body as Sparql).val)
    .post('/tell', async ({ body }) => {
       const apiKey = process.env.OPENAI_API_KEY
 

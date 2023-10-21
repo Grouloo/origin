@@ -10,7 +10,7 @@ The user will give you a description in natural language of something to insert 
 Here is the schema of the knowledge base in JSON, keys are properties names and values are types. You can use any property described, but you don't have to use any of them either:\n`
 
 const PRE_PROMPT_2 = `\nyou can also specify a property that is not defined in the schema if it is missing and could be useful information, but when you use one that is, make sure to respect its type.
-Make sure to respect JSON standards whzn specifying values. Strings must be surrounded by double quotes, but other values such as numbers and boolean don't.`
+Make sure to respect JSON standards when specifying values. Strings must be surrounded by double quotes, but other values such as numbers and boolean don't.`
 
 const safeJsonParse = resultify<SyntaxError, typeof JSON.parse>(JSON.parse)
 
