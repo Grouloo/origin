@@ -1,6 +1,15 @@
-import { Err, Maybe, None, Ok, Result, Some } from 'shulk'
+import { Maybe, None, Some } from 'shulk'
 import { Triple } from '../triple/Triple'
-import { DatabaseError } from '../types/DatabaseError'
+
+function tripletoTuple(triple: Triple, fields?: { [x: string]: string }) {
+   const { predicate } = triple
+
+   if (fields && Object.hasOwn(fields, predicate)) {
+      return [fields[predicate], triple.object]
+   }
+
+   return [triple.predicate, triple.object]
+}
 
 export function triplesToSubject(
    triples: Triple[],
@@ -10,19 +19,13 @@ export function triplesToSubject(
       return None()
    }
 
-   const subject: { [x: string]: unknown } = {
-      id: triples[0].subject.replace('subject:', ''),
-   }
+   const rawSubject = triples.map((triple: Triple) =>
+      tripletoTuple(triple, fields)
+   )
 
-   triples.map((triple: Triple) => {
-      const { predicate } = triple
+   rawSubject.unshift(['id', triples[0].subject.replace('subject:', '')])
 
-      if (!fields) {
-         subject[triple.predicate] = triple.object
-      } else if (Object.hasOwn(fields, predicate)) {
-         subject[fields[predicate] as string] = triple.object
-      }
-   })
+   const subject = Object.fromEntries(rawSubject)
 
    return Some(subject)
 }

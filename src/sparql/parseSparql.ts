@@ -52,10 +52,10 @@ function parseBody(sparql: string): Result<string, SparqlTree['body']> {
       return Err('Missing conditions in query.')
    }
 
-   const conditions = conditionsStr.slice(1).split(';')
+   const conditions = conditionsStr.trim().split(';')
 
    const where = conditions.map((condition) => {
-      const [variable, predicate, object] = condition.split(' ')
+      const [variable, predicate, object] = condition.trim().split(' ')
 
       if (!variable || !predicate || !object) {
          return None()

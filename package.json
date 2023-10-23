@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "elysia": "^0.7.15",
-    "shulk": "0.10.0"
+    "shulk": "0.10.1"
   },
   "scripts": {
     "start": "bun run ./src/index.ts"

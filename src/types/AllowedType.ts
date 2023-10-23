@@ -6,11 +6,8 @@ export enum AllowedType {
 }
 
 export function isAllowedType(val: unknown): val is AllowedType {
-   if (
+   return (
       typeof val == 'string' &&
       Object.values(AllowedType).includes(val as AllowedType)
-   ) {
-      return true
-   }
-   return false
+   )
 }

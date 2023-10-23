@@ -23,7 +23,7 @@ function createFieldToVariable(
       ...Object.fromEntries(
          parsedQuery.body.where.map((condition) => [
             condition.predicate,
-            condition.variable,
+            condition.variable.replace('?', ''),
          ])
       ),
    })
