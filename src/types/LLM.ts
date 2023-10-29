@@ -13,4 +13,4 @@ export type LLMResponse = {
 export type LLMHandler = (
    prePrompt: string,
    prompt: string
-) => AsyncResult<DatabaseError, LLMResponse>
+) => AsyncResult<DatabaseError['any'], LLMResponse>

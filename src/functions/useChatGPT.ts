@@ -1,4 +1,4 @@
-import { AsyncResult, Err, Ok, Result, asyncResultify, resultify } from 'shulk'
+import { AsyncResult, Ok, asyncResultify } from 'shulk'
 import { DatabaseError } from '../types/DatabaseError'
 import { LLMResponse } from '../types/LLM'
 
@@ -9,7 +9,7 @@ export function useChatGPT(apiKey: string) {
       prePrompt: string,
       prompt: string
    ): AsyncResult<DatabaseError['Unexpected'], LLMResponse> => {
-      const rawResponseRes = await safeFetch(
+      const rawResponseResult = await safeFetch(
          'https://api.openai.com/v1/chat/completions',
          {
             method: 'POST',
@@ -33,19 +33,19 @@ export function useChatGPT(apiKey: string) {
          }
       )
 
-      if (rawResponseRes._state == 'Err') {
-         return Err(DatabaseError.Unexpected(rawResponseRes.val.message))
-      }
+      const parsedResponse = await rawResponseResult
+         .mapErr((err) => DatabaseError.Unexpected(err.message))
+         .flatMapAsync(async (rawResponse) => Ok(await rawResponse.json()))
 
-      const parsedResponse = await rawResponseRes.val.json()
-
-      return Ok({
+      const llmResponseResult = parsedResponse.map((parsedResponse) => ({
          answer: parsedResponse.choices[0].message.content,
          usage: {
             promptTokens: parsedResponse.usage.prompt_tokens,
             completionTokens: parsedResponse.usage.completion_tokens,
             totalTokens: parsedResponse.usage.totalTokens,
          },
-      })
+      }))
+
+      return llmResponseResult
    }
 }

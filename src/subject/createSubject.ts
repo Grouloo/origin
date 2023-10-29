@@ -3,14 +3,14 @@ import { Triple } from '../triple/Triple'
 import { createTripleId } from '../types/TripleId'
 import { saveTriple } from '../triple/saveTriple'
 import Database from 'bun:sqlite'
-import { Err, Ok, Result, match } from 'shulk'
+import { AsyncResult, Procedure } from 'shulk'
 import { DatabaseError } from '../types/DatabaseError'
 import { triplesToSubject } from './triplesToSubject'
 
-export function createSubject(
+export async function createSubject(
    db: Database,
    entity: { [x: string]: unknown }
-): Result<DatabaseError['BadType' | 'Unexpected' | 'NotFound'], object> {
+): AsyncResult<DatabaseError['BadType' | 'Unexpected' | 'NotFound'], object> {
    const subjectId = createSubjectId()
 
    const triples = Object.entries(entity).map(([prop, value]) => {
@@ -24,19 +24,17 @@ export function createSubject(
       return triple
    })
 
-   for (const triple of triples) {
-      const res = saveTriple(db, triple)
+   const storeTriplesRoutines = triples.map(
+      (triple) => async () => saveTriple(db, triple)
+   )
 
-      if (res._state == 'Err') {
-         return Err(res.val)
-      }
-   }
+   const storingTriplesResult = await Procedure.start()
+      .parallelize<DatabaseError['any'], true[]>(...storeTriplesRoutines)
+      .end()
 
-   return match(triplesToSubject(triples))
-      .returnType<Result<DatabaseError['Unexpected'], object>>()
-      .case({
-         None: () =>
-            Err(DatabaseError.Unexpected(`An unexpected error has occured.`)),
-         Some: ({ val }) => Ok(val),
-      })
+   return storingTriplesResult.flatMap(() =>
+      triplesToSubject(triples).toResult(() =>
+         DatabaseError.Unexpected(`An unexpected error has occured.`)
+      )
+   )
 }

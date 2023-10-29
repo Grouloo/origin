@@ -34,7 +34,7 @@ export async function insertByTelling(
             DatabaseError.Unexpected(WRONG_FORMAT(rawResponse.answer))
          )
       )
-      .flatMap((parsedResponse) => createSubject(db, parsedResponse))
+      .flatMapAsync((parsedResponse) => createSubject(db, parsedResponse))
 
    return createdSubjectRes
 }
